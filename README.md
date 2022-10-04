@@ -8,7 +8,7 @@
 
 2. Executing the main function of **Me2.py**, calculating CC recognition results, including *Recall*, *Precision*, *FPR* and *F1-score*. In addition, obtaining the random forest's training model.
 
-3. Executing the main function in **Location.py** to calculate the statement suspicion.
+3. Executing the main function in **Location.py** to calculate the list of suspicious statements.
 
 4. Executing the main function in **FaultMe.py** to get the metrics of fault localization which contains *Wasted Effort* and *Accuracy@N*.
 
@@ -19,6 +19,6 @@
 
 2. Executing the main function of **MyTest2.py**, calculating CC recognition results, including *Recall*, *Precision*, *FPR* and *F1-score*.
 
-3. Executing the main function in **base_Location.py** to calculate the statement suspicion.
+3. Executing the main function in **base_Location.py** to calculate the list of suspicious statements.
 
 4. Executing the main function in **bsse_Fault.py** to get the metrics of fault localization which contains *Wasted Effort* and *Accuracy@N*.
