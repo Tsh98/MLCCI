@@ -1,8 +1,8 @@
 # MLCCI code
 
-The experiment is divided into two parts, one is MCLLI approach and the other is Fuzzy Weighted KNN approach which is baseline.
+**The experiment is divided into two parts, one is MCLLI approach and the other is Fuzzy Weighted KNN approach which is baseline.**
 
-## Run MCLLI approach experimental code
+## Running MCLLI approach experimental code
 
 1. Executing the main function of **featureExtract.py**, obtain the results of four feature calculations.
 
@@ -13,7 +13,7 @@ The experiment is divided into two parts, one is MCLLI approach and the other is
 4. Executing the main function in **FaultMe.py** to get the metrics of fault localization which contains *Wasted Effort* and *Accuracy@N*.
 
 
-## Run Fuzzy Weighted KNN approach experimental code
+## Running Fuzzy Weighted KNN approach experimental code
 
 1. Executing the main function of **featureExtract.py**, obtain the results of four feature calculations, replace the **execution** in the main function with **execution_baseline**.
 
