@@ -2,11 +2,13 @@
 from __future__ import division
 
 import copy
+import os
 import sys
 import math
 import numpy as np
 # anf, anp
 import sys
+import csv
 from sklearn.neighbors import NearestNeighbors
 
 from tqdm import trange
@@ -542,11 +544,13 @@ def SBFL_location_CC(covMatrix_int, in_vector,cc_pro,ccSum,StatementNum,use_list
     return sus_oc, sus_tu, sus_op, sus_ds, sus_cr, sus_ja
 
 
-def statement_sus(case_num,statement_num,covMatrix,inVector,versionPath):
-
+def statement_sus(formulas, case_num,statement_num,covMatrix,inVector,versionPath):
+    newformulas = {}
     sus_score = Tool_io.checkAndLoad(versionPath[1], "sus_score")
     if sus_score != None:
-        return sus_score
+        sus_score, newformulas, flag = Tool_io.add_del_formula(sus_score,formulas,versionPath[1],'sus_score')
+        if flag == 0:
+            return sus_score
 
     #失败的测试用例
     tf = 0
@@ -583,16 +587,70 @@ def statement_sus(case_num,statement_num,covMatrix,inVector,versionPath):
                 else:
                     anp[statement_index] += 1
     #计算怀疑分数（ochiai）
-    formulaSus,notSort = SBFL_location_all_test_case(aef, aep, anf, anp, covMatrix, tf, tp)
-
-    sus_score = {}
-    sus_score[0] = formulaSus
-    sus_score[1] = notSort
+    if sus_score==None:
+        newformulas = formulas
+    formulaSus = SBFL_location_Test_Cases(newformulas, len(covMatrix[0]), aef, aep, anf, anp, tf, tp)
 
     # 保存结果
+    if sus_score is not None:
+        for s_index in formulaSus:
+            sus_score[s_index] = formulaSus[s_index]
+    else:
+        sus_score = formulaSus
+
     Tool_io.checkAndSave(versionPath[1], "sus_score", sus_score)
 
     return sus_score
+
+
+# 从csv文件中读取怀疑度公式
+def deal_suspicion_formula():
+    path = os.path.join(os.path.join(os.getcwd(), 'config'), 'formula.csv')
+    formulas = {}
+    with open(path, 'r', newline='') as csvfile:
+        content = csv.reader(csvfile)
+        for row in content:
+            # 不读取表头
+            if row[0] == 'name':
+                continue
+            formulas[row[0]] = row[1]
+    return formulas
+
+
+def cal_formula_suspicion(name, formula, aef, aep, anf, anp, tf, tp, index):
+    # 计算怀疑度值
+    try:
+        if name == 'crosstab':
+            res = cal_crosstab(tf, tp, aef, aep, anf, anp)
+        else:
+            res = eval(formula)
+    except ZeroDivisionError:
+        if name.__contains__('dstar') and aef > 0:
+            return sys.maxsize
+        else:
+            return 0
+    else:
+        return res
+
+
+# 计算所有测试用例怀疑度值
+def SBFL_location_Test_Cases(formulas, fun_num, aefList, aepList, anfList, anpList, tf, tp):
+    formula_data = {}
+    # 为不同怀疑度公式创建空字典
+    for name in formulas:
+        formula_data[name] = {}
+    index = 3
+    # 遍历语句
+    for fun_index in range(fun_num):
+        aef = aefList[fun_index]
+        aep = aepList[fun_index]
+        anf = anfList[fun_index]
+        anp = anpList[fun_index]
+        for formula_index in formulas:
+            sus_value = cal_formula_suspicion(formula_index, formulas[formula_index], aef, aep, anf, anp, tf, tp, index)
+            formula_data[formula_index][fun_index] = sus_value
+
+    return formula_data
 
 
 # 归一化特征

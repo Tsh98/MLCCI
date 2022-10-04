@@ -11,8 +11,7 @@ import FuzzyKnn
 import Tool_io
 import Tool_localization
 
-# _formulaList={"crosstab", "dstar", "jaccard", "ochiai", "op2", "turantula"}
-from Methods import machine_learning
+
 from Sttaic_code_features import all_operators
 
 _formulaList={"dstar", "jaccard", "ochiai"}
@@ -27,14 +26,14 @@ def getSuspiciousnessFDistance(versionPath,covMatrix,inVector,formulaSus,use_lis
             return FD_All
     FD_All = {}
     if baseline:
-        for algorithm_k, algorithm_v in formulaSus.items():
+        for algorithm_k in formulaSus:
             if algorithm_k == 'dstar':
             #if algorithm_k == 'dstar' or algorithm_k == 'dstar' or algorithm_k == 'dstar':
                 FD = {}
                 for case_index in trange(len(covMatrix)):
                     test = copy.deepcopy(covMatrix[case_index])
-                    for key, value in formulaSus[algorithm_k]:
-                        test[key] *= value
+                    for key in formulaSus[algorithm_k]:
+                        test[key] *= formulaSus[algorithm_k][key]
                     FD[case_index] = test
                 FD_All[algorithm_k] = FD
         Tool_io.checkAndSave(versionPath[1], "data_FD_all", FD_All)
@@ -42,102 +41,69 @@ def getSuspiciousnessFDistance(versionPath,covMatrix,inVector,formulaSus,use_lis
     return FD_All
 
 
-def getSuspiciousnessScoreFactorSimple(versionPath,covMatrix,inVector,formulaSus_origin,use_list=None,baseline=True):
+def getSuspiciousnessScoreFactorSimple(versionPath, covMatrix, formulaSus_origin):
     print("SS start")
     formulaSus = formulaSus_origin
     SS_ALL_t = Tool_io.checkAndLoad(versionPath[1], "data_SS_all")
     if SS_ALL_t != None:
-        # 原始SS特征维度
-        origin_len = len(SS_ALL_t)
-        # 怀疑度公式类型是否有增减
-        formulaSus_copy = copy.deepcopy(formulaSus_origin)
-        formulaSus,SS_ALL_t = Tool_io.add_del_formula(formulaSus_copy, SS_ALL_t)
-        # 怀疑度公式与现有SS特征用到的怀疑度公式类型是否有减少
-        now_len = len(SS_ALL_t)
-        if now_len < origin_len:
-            Tool_io.checkDele(versionPath[1], "data_SS_all")
-            if len(formulaSus) == 0:
-                Tool_io.checkAndSave(versionPath[1], "data_SS_all", SS_ALL_t)
-                return SS_ALL_t
-        if len(formulaSus) > 0:
-            Tool_io.checkDele(versionPath[1], "data_SS_all")
-        else:
-            # 怀疑度公式与现有SS特征用到的怀疑度公式类型没有增加，原结果不变或删减后可直接返回
+        SS_ALL_t, formulaSus, flag = Tool_io.add_del_formula(SS_ALL_t,formulaSus_origin,versionPath[1],'data_SS_all')
+        if flag == 0:
             return SS_ALL_t
 
     SS_ALL = {}
-    if baseline:
-        for algorithm_k, algorithm_v in formulaSus.items():
-            SS = {}
-            for case_index in trange(len(covMatrix)):
-                if use_list == None or len(use_list) == 0 or case_index in use_list:
-                #if inVector[case_index] == 0:
-                    Sh_Num=0
-                    Sh_Sum=0
-                    Sl_Num=0
-                    Sl_Sum=0
-                    for key,value in formulaSus[algorithm_k]:
-                        if covMatrix[case_index][key]==1:
-                            if value>=0.5:
-                                Sh_Num+=1
-                                Sh_Sum+=value
-                            else:
-                                Sl_Num+=1
-                                Sl_Sum+=value
-                    if Sh_Num>0:
-                        SS[case_index]=Sh_Sum/Sh_Num
+    for algorithm_k in formulaSus:
+        SS = {}
+        for case_index in trange(len(covMatrix)):
+            Sh_Num=0
+            Sh_Sum=0
+            Sl_Num=0
+            Sl_Sum = 0
+            for key in formulaSus[algorithm_k]:
+                if covMatrix[case_index][key]==1:
+                    if formulaSus[algorithm_k][key]>=0.5:
+                        Sh_Num += 1
+                        Sh_Sum += formulaSus[algorithm_k][key]
                     else:
-                        if Sl_Num == 0:
-                            SS[case_index] = 0
-                        else:
-                            SS[case_index] = Sl_Sum / Sl_Num
-            SS_ALL[algorithm_k] = SS
-
-        # 若原结果存在，且有新增怀疑度公式，将新结果拼接后重新存储
-        if SS_ALL_t is not None:
-            for add_index in SS_ALL:
-                SS_ALL_t[add_index] = SS_ALL[add_index]
-        else:
-            SS_ALL_t = SS_ALL
-        Tool_io.checkAndSave(versionPath[1], "data_SS_all", SS_ALL_t)
-        print("SS end")
+                        Sl_Num += 1
+                        Sl_Sum += formulaSus[algorithm_k][key]
+            if Sh_Num > 0:
+                SS[case_index] = Sh_Sum/Sh_Num
+            else:
+                if Sl_Num == 0:
+                    SS[case_index] = 0
+                else:
+                    SS[case_index] = Sl_Sum / Sl_Num
+        SS_ALL[algorithm_k] = SS
+    # 若原结果存在，且有新增怀疑度公式，将新结果拼接后重新存储
+    if SS_ALL_t is not None:
+        for add_index in SS_ALL:
+            SS_ALL_t[add_index] = SS_ALL[add_index]
+    else:
+        SS_ALL_t = SS_ALL
+    Tool_io.checkAndSave(versionPath[1], "data_SS_all", SS_ALL_t)
+    print("SS end")
     return SS_ALL_t
 
 
-def getCoverageRatioFactor(versionPath, covMatrix, inVector,formulaSus_origin,baseline=True):
+def getCoverageRatioFactor(versionPath, covMatrix,formulaSus_origin):
     print("CR start")
-    #若存在CR结果，则直接返回
     formulaSus = formulaSus_origin
     CR_ALL_t = Tool_io.checkAndLoad(versionPath[1], "data_CR_all")
     if CR_ALL_t != None:
-        # 原始CR特征维度
-        origin_len = len(CR_ALL_t)
-        # 怀疑度公式类型是否有增减
-        formulaSus_copy = copy.deepcopy(formulaSus_origin)
-        formulaSus, CR_ALL_t = Tool_io.add_del_formula(formulaSus_copy, CR_ALL_t)
-        # 怀疑度公式与现有CR特征用到的怀疑度公式类型是否有减少
-        now_len = len(CR_ALL_t)
-        if now_len < origin_len:
-            Tool_io.checkDele(versionPath[1], "data_CR_all")
-            if len(formulaSus) == 0:
-                Tool_io.checkAndSave(versionPath[1], "data_CR_all", CR_ALL_t)
-                return CR_ALL_t
-        if len(formulaSus) > 0:
-            Tool_io.checkDele(versionPath[1], "data_CR_all")
-        else:
-            # 怀疑度公式与现有CR特征用到的怀疑度公式类型没有增加，原结果不变或删减后可直接返回
+        CR_ALL_t, formulaSus, flag = Tool_io.add_del_formula(CR_ALL_t, formulaSus_origin, versionPath[1], 'data_CR_all')
+        if flag == 0:
             return CR_ALL_t
 
     CR_ALL = {}
-    for algorithm_k, algorithm_v in formulaSus.items():
+    for algorithm_k in formulaSus:
         CR = {}
         for case_index in trange(len(covMatrix)):
             #if inVector[case_index] == 0:
             S_num = 0
             Sp_num = 0
-            for key, value in formulaSus[algorithm_k]:
+            for key in formulaSus[algorithm_k]:
                 #怀疑分数在0.5-1之间的语句数量
-                if(value>=0.5 and value<=1):
+                if(formulaSus[algorithm_k][key] >= 0.5 and formulaSus[algorithm_k][key] <= 1):
                     S_num += 1
                     # 计算怀疑分数在0.5-1之间的并且被执行的语句数量
                     if covMatrix[case_index][key] == 1:
@@ -148,7 +114,6 @@ def getCoverageRatioFactor(versionPath, covMatrix, inVector,formulaSus_origin,ba
             else:
                 CR[case_index] = Sp_num / S_num
         CR_ALL[algorithm_k] = CR
-
     # 若原结果存在，且有新增怀疑度公式，将新结果拼接后重新存储
     if CR_ALL_t is not None:
         for add_index in CR_ALL:
@@ -159,48 +124,33 @@ def getCoverageRatioFactor(versionPath, covMatrix, inVector,formulaSus_origin,ba
     return CR_ALL_t
 
 
-def getSimilarityFactor(versionPath,covMatrix,inVector,formulaSus_origin,baseline=True):
+def getSimilarityFactor(versionPath,covMatrix,inVector,formulaSus_origin):
     print("SF start")
     # 若存在SF结果，则直接返回
     formulaSus = formulaSus_origin
     SF_ALL_t = Tool_io.checkAndLoad(versionPath[1], "data_SF_all")
     if SF_ALL_t != None:
-        # 原始SF特征维度
-        origin_len = len(SF_ALL_t)
-        # 怀疑度公式类型是否有增减
-        formulaSus_copy = copy.deepcopy(formulaSus_origin)
-        formulaSus, SF_ALL_t = Tool_io.add_del_formula(formulaSus_copy, SF_ALL_t)
-        # 怀疑度公式与现有SF特征用到的怀疑度公式类型是否有减少
-        now_len = len(SF_ALL_t)
-        if now_len < origin_len:
-            Tool_io.checkDele(versionPath[1], "data_SF_all")
-            if len(formulaSus) == 0:
-                Tool_io.checkAndSave(versionPath[1], "data_SF_all", SF_ALL_t)
-                return SF_ALL_t
-        if len(formulaSus) > 0:
-            Tool_io.checkDele(versionPath[1], "data_SF_all")
-        else:
-            # 怀疑度公式与现有SF特征用到的怀疑度公式类型没有增加，原结果不变或删减后可直接返回
+        SF_ALL_t, formulaSus, flag = Tool_io.add_del_formula(SF_ALL_t, formulaSus_origin, versionPath[1], 'data_SF_all')
+        if flag == 0:
             return SF_ALL_t
 
-
     SF_ALL = {}
-    for algorithm_k, algorithm_v in formulaSus.items():
+    for algorithm_k in formulaSus:
         SF = {}
         Ef = []
     #计算失败测试用例的加权向量
         for case_failed in range(len(covMatrix)):
             if inVector[case_failed] == 1:
                 fi = copy.deepcopy(covMatrix[case_failed])
-                for key, value in formulaSus[algorithm_k]:
-                    fi[key] *= value
+                for key in formulaSus[algorithm_k]:
+                    fi[key] *= formulaSus[algorithm_k][key]
                 Ef.append(fi)
         for case_index in trange(len(covMatrix)):
             #if inVector[case_index] == 0:
             #计算Ep的加权向量
             Ep = copy.deepcopy(covMatrix[case_index])
-            for key, value in formulaSus[algorithm_k]:
-                Ep[key] *= value
+            for key in formulaSus[algorithm_k]:
+                Ep[key] *= formulaSus[algorithm_k][key]
             #Efi和Ep距离初始值为最大值，也就是程序语句数
             distance = len(covMatrix[case_index])
             # 计算Efi和Ep之间的最短距离
@@ -227,28 +177,15 @@ def getSimilarityFactor(versionPath,covMatrix,inVector,formulaSus_origin,baselin
     return SF_ALL_t
 
 
-def getFaultMaskingFactor(versionPath,covMatrix,inVector,notSort_origin,target,baseline=True):
+def getFaultMaskingFactor(versionPath, covMatrix, formulaSus_origin, target):
     print("FM start")
     # 若存在SF结果，则直接返回
-    notSort = notSort_origin
+    # 若存在SF结果，则直接返回
+    formulaSus = formulaSus_origin
     FM_ALL_t = Tool_io.checkAndLoad(versionPath[1], "data_FM_all")
     if FM_ALL_t != None:
-        # 原始SF特征维度
-        origin_len = len(FM_ALL_t)
-        # 怀疑度公式类型是否有增减
-        notSort_copy = copy.deepcopy(notSort_origin)
-        notSort, FM_ALL_t = Tool_io.add_del_formula(notSort_copy, FM_ALL_t)
-        # 怀疑度公式与现有SF特征用到的怀疑度公式类型是否有减少
-        now_len = len(FM_ALL_t)
-        if now_len < origin_len:
-            Tool_io.checkDele(versionPath[1], "data_FM_all")
-            if len(notSort) == 0:
-                Tool_io.checkAndSave(versionPath[1], "data_FM_all", FM_ALL_t)
-                return FM_ALL_t
-        if len(notSort) > 0:
-            Tool_io.checkDele(versionPath[1], "data_FM_all")
-        else:
-            # 怀疑度公式与现有FM特征用到的怀疑度公式类型没有增加，原结果不变或删减后可直接返回
+        FM_ALL_t, formulaSus, flag = Tool_io.add_del_formula(FM_ALL_t, formulaSus_origin, versionPath[1], 'data_FM_all')
+        if flag == 0:
             return FM_ALL_t
 
     #impact factor
@@ -262,17 +199,17 @@ def getFaultMaskingFactor(versionPath,covMatrix,inVector,notSort_origin,target,b
         '-':0.08,
         '*':0.08,
         '/':0.08,
-        '%':0.08,
+        '%':0.38,
     }
     FM_ALL = {}
-    for algorithm_k, algorithm_v in notSort.items():
+    for algorithm_k in formulaSus:
         FM = {}
         for case_index in trange(len(covMatrix)):
             #if inVector[case_index] == 0:
             for stat_index in range(len(covMatrix[case_index])):
                 if covMatrix[case_index][stat_index] == 1:
                     #查找怀疑度大于0.5的第一条被执行过的语句
-                    if(algorithm_v[stat_index])>0.5:
+                    if(formulaSus[algorithm_k][stat_index])>0.5:
                         #查找怀疑度大于0.5的第一条被执行过的语句 的下一条语句
                         list_index = stat_index+1
                         #遍历之后的语句
@@ -403,21 +340,25 @@ def execution(param):
         f_error.close()
     statement_num = len(covMatrix[0])
     case_num = len(covMatrix)
+    # 所有怀疑度公式
+    sus_formulas = Tool_localization.deal_suspicion_formula()
+    print(sus_formulas)
     # 计算怀疑度分数
-    sus_score = Tool_localization.statement_sus(case_num, statement_num, covMatrix, inVector, versionPath)
+    sus_score = Tool_localization.statement_sus(sus_formulas,case_num, statement_num, covMatrix, inVector, versionPath)
+    print(sus_formulas)
     # 计算SS
     print(versionPath)
-    SS = getSuspiciousnessScoreFactorSimple(versionPath, covMatrix, inVector, sus_score[0])
+    SS = getSuspiciousnessScoreFactorSimple(versionPath, covMatrix, sus_score)
     # 计算CR
     print(versionPath)
-    CR = getCoverageRatioFactor(versionPath, covMatrix, inVector, sus_score[0])
+    CR = getCoverageRatioFactor(versionPath, covMatrix, sus_score)
     # 计算SF
     print(versionPath)
-    SF = getSimilarityFactor(versionPath, covMatrix, inVector, sus_score[0])
+    SF = getSimilarityFactor(versionPath, covMatrix, inVector, sus_score)
     # 计算FM
     print(versionPath)
     target = os.path.join(versionPath[1], "hugeCodeCopy.txt")
-    FM = getFaultMaskingFactor(versionPath, covMatrix, inVector, sus_score[1], target)
+    FM = getFaultMaskingFactor(versionPath, covMatrix, sus_score, target)
     # 归一化特征
     res_nor = Tool_localization.normalization(SS, CR, SF, FM, versionPath)
     return "success"
@@ -438,10 +379,12 @@ def execution_baseline(param):
         f_error.close()
     statement_num = len(covMatrix[0])
     case_num = len(covMatrix)
-    sus_score = Tool_localization.statement_sus(case_num, statement_num, covMatrix, inVector, versionPath)
+    # 获取怀疑度公式
+    sus_formulas = Tool_localization.deal_suspicion_formula()
+    sus_score = Tool_localization.statement_sus(sus_formulas, case_num, statement_num, covMatrix, inVector, versionPath)
 
     #模糊加权距离
-    FDistance = getSuspiciousnessFDistance(versionPath, covMatrix, inVector, sus_score[0])
+    FDistance = getSuspiciousnessFDistance(versionPath, covMatrix, inVector, sus_score)
     WPcc = FuzzyKnn.fuzzy_knn(FDistance, failIndex, trueCC, versionPath)
     res = FuzzyKnn.fuzzy_knn_metric(realCC, WPcc,versionPath,error_pro_ver)
 
@@ -456,56 +399,43 @@ if __name__ =="__main__":
     # res_path = 'D:\\CC\\data_test\\res'
 
     # linux path sss
-    root = '/home/tianshuaihua/dataset'
-    data = '/home/tianshuaihua/pydata'
-    error_pro_ver = '/home/tianshuaihua/error'
-    res_path = '/home/tianshuaihua/res'
+    # root = '/home/tianshuaihua/dataset'
+    # data = '/home/tianshuaihua/tpydata'
+    # error_pro_ver = '/home/tianshuaihua/error'
+    # res_path = '/home/tianshuaihua/res'
 
     # baseliness
-    # root = '/home/tianshuaihua/base_dataset'
-    # data = '/home/tianshuaihua/base_pydata'
-    # error_pro_ver = '/home/tianshuaihua/base_error'
-    # res_path = '/home/tianshuaihua/base_res'
+    root = '/home/tianshuaihua/base_dataset'
+    data = '/home/tianshuaihua/base_pydata'
+    error_pro_ver = '/home/tianshuaihua/base_error'
+    res_path = '/home/tianshuaihua/base_res'
 
     # 获取程序路径
     res = Tool_io.create_data_folder(root,data)
+    # param = []
+    # param.append(['/home/tianshuaihua/dataset/Chart/1b','/home/tianshuaihua/tpydata/Chart/1b'])
+    # param.append(error_pro_ver)
+    # execution(param)
+
     for index in res:
         print(index)
-        pool = Pool(processes=4)
+        pool = Pool(processes=6)
         for ver in res[index]:
             pro_name = os.path.basename(index)
             param = []
             param.append(ver)
             param.append(error_pro_ver)
-            # if pro_name == 'Math':
-            #print(os.path.basename(ver[0]))
-            pool.apply_async(execution, (param,))
+            if pro_name != 'Closure':
+                continue
+            pool.apply_async(execution_baseline, (param,))
             # else:
             #     continue
         pool.close()
         pool.join()
         print("current program end")
+
+
     #machine_learning(root,data,error_pro_ver,res_path)
-
-    # execution(ver[index], error_pro_ver)ss
-    # for i in range(len(all_files)):sss
-    #     p.apply(func=execution, args=(all_files[i],))  # 异步ss
-    # p.close()
-    # p.join()  # 异步调用apply_async,需要添加这一行
-
-    # for index in range(len(all_files)):
-    #     print(index)
-    #     if index!=2 and index != 7:
-    #         execution(all_files[index],error_pro_ver)
-
-    #chart 3b不可用
-    # for index in range(26):
-    #     if 0 <= index < 26 and index != 2:
-    #         execution(all_files[index],error_pro_ver)
-
-    # execution_baseline(all_files[11]) s
-
-
 
     # 回归静态特征
     #target = os.path.join(versionPath, "hugeCodeCopy.txt")
@@ -516,10 +446,6 @@ if __name__ =="__main__":
     #targetStatic = os.path.join(versionPath, "static_fea_copy.txt")
     #STATIC_FEA = getStaticFeature(versionPath, covMatrix, inVector, ochiai, targetStatic)
 
-
-    # for k,v in SF.items():
-    #    if v>1:
-    #        print((k,v))
 
     # print(time.time())
     # matlab_fun = fuzzyCal.initialize()
@@ -543,18 +469,12 @@ if __name__ =="__main__":
     #     for i in result:
     #         f.write(str(i)+'\n')
 
-
     #engine = matlab.engine.start_matlab()
     #result=engine.Cal(2,3)
     #result = engine.fuzzyCal(0.6,0.4,0.7,0.8,0.5)
     #print(result)
 
-
-
-
     # print(time.time())
     # matlab_fun = fuzzyCal.initialize()
     # cal = matlab_fun.fuzzyCal(0.4, 0.6, 0.7, 0.8, 0.6)
     # print(cal)
-
-

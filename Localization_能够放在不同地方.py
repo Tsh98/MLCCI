@@ -21,22 +21,37 @@ def deal_cc():
 
 
 # 计算预测值
-def cal_predict(root,data,model_path,p_name,res_path):
+def cal_predict(root,data,model_path,p_name,res_path,originPath):
     # 加载模型
-    f = open(os.path.join(model_path, p_name+'.mod'), 'rb')
+    f = open(os.path.join(model_path, 'All.mod'), 'rb')
     model = pickle.load(f)
     # 加载要预测的数据
-    f = open(os.path.join(model_path, p_name + '.td'), 'rb')
+    f = open(os.path.join(model_path, 'All.td'), 'rb')
     td = pickle.load(f)
     # 程序路径
     pn_pydata = os.path.join(data,p_name)
     pn_dataset = os.path.join(root,p_name)
-    for ver in td:
+    origin_dataset = os.path.join(originPath,p_name)
+    for ver in td[p_name]:
+        print(p_name,ver)
+
+        sus_path = os.path.join(os.path.join(data,p_name),ver)
+
+        sus_value = Tool_io.checkAndLoad(sus_path, "sus_value_function")
+        if sus_value != None:
+            print("finished", "skip")
+            continue
+
         vn_pydata = os.path.join(pn_pydata,ver)
         res = Tool_io.checkAndLoad(vn_pydata, "data_Coverage_InVector_saveAgain")
+        origin_dataset_version=os.path.join(origin_dataset,ver)
+        originalCoverage = Tool_io.checkAndLoad(origin_dataset_version, "CoverageMatrix_Function.in")
+        if originalCoverage==None:
+            print("lake of original coverage","skip")
+            continue
         # 失败测试用例1
         fault_index = res[7]
-        X_test = td[ver]['res_array']
+        X_test = td[p_name][ver]['res_array']
         Y_test = model.predict(X_test)
         # 将失败测试用例结果改为2，cc为1
         for val in fault_index:
@@ -49,34 +64,47 @@ def cal_predict(root,data,model_path,p_name,res_path):
         #     for index in fault_loc[jfile]:
         #         fault.append(index)
         # 计算怀疑度
-        sus_path = os.path.join(os.path.join(data,p_name),ver)
 
-        cal_sus(len(res[1]), len(res[1][0]), res[1], Y_test, sus_path)
-        print("s")
-    print("s")
 
+        cal_sus(len(originalCoverage), len(originalCoverage[0]), originalCoverage, Y_test, sus_path)
+    #     print("s")
+    # print("s")
+
+project = {
+    "Chart": 26,
+    "Closure": 176,
+    "Lang": 65,
+    "Math": 106,
+    "Mockito": 38,
+    "Time": 27,
+    "Cli": 39,
+    "Codec": 18,
+    "Collections": 4,
+    "Compress": 47,
+    "Csv": 16,
+    "Gson": 18,
+    "JacksonCore": 26,
+    "JacksonDatabind": 112,
+    "JacksonXml": 6,
+    "Jsoup": 93,
+    "JxPath": 22,
+}
 
 # 获取要预测的程序信息
-def get_info(root,data,error_pro_ver,res_path,model_path):
-    files = get_files(model_path)
-    pro = []
-    for file in files:
-        name = file.split(".")[0]
-        pro.append(name)
-    program = list(set(pro))
-    for p_name in program:
-        # if p_name == 'Closure':
-        #     continue
-        cal_predict(root,data,model_path,p_name,res_path)
-    print(program)
+def get_info(root,data,error_pro_ver,res_path,model_path,originPath):
+    # files = get_files(model_path)
+    # pro = []
+    # for file in files:
+    #     name = file.split(".")[0]
+    #     pro.append(name)
+    # program = list(set(pro))
+    for p_name in project:
+        cal_predict(root,data,model_path,p_name,res_path,originPath)
+    # print(program)
 
 
 # 计算怀疑度
 def cal_sus(case_num,statement_num,covMatrix,inVector,sus_path):
-
-    # sus_value = Tool_io.checkAndLoad(sus_path, "sus_value")
-    # if sus_value != None:
-    #    return sus_value
 
     #失败的测试用例
     tf = 0
@@ -130,7 +158,7 @@ def cal_sus(case_num,statement_num,covMatrix,inVector,sus_path):
                 else:
                     anf[statement_index] += 1
     formulaSus = SBFL_location_cases(aef, aep, anf, anp, covMatrix, tf, tp, ce, cn)
-    #Tool_io.checkAndSave(sus_path, "sus_value", formulaSus)
+    Tool_io.checkAndSave(sus_path, "sus_value_function", formulaSus)
     return formulaSus
 
 
@@ -172,12 +200,11 @@ def SBFL_location_cases(aefList,aepList,anfList,anpList,covMatrix,tf,tp,ceList,c
             # 重标策略
             aepp2 = aep - ce
             aeff2 = aef + ce
-            tf2 =  anf + aeff2
 
-            oc_two = cal_ochiai(tf2, tp, aeff2, aepp2, anf, anp)
+            oc_two = cal_ochiai(tf, tp, aeff2, aepp2, anf, anp)
             sus_oc_two[statement_index] = oc_two
 
-            ds_two = cal_dstar(tf2, tp, aeff2, aepp2, anf, anp, 3)
+            ds_two = cal_dstar(tf, tp, aeff2, aepp2, anf, anp, 3)
             sus_ds_two[statement_index] = ds_two
 
             # 交换策略
@@ -186,12 +213,10 @@ def SBFL_location_cases(aefList,aepList,anfList,anpList,covMatrix,tf,tp,ceList,c
             aeff3 = aef + ce
             anff3 = anf + cn
 
-            tf3 = aeff3 + anff3
-
-            oc_three = cal_ochiai(tf3, tp, aeff3, aepp3, anff3, anpp3)
+            oc_three = cal_ochiai(tf, tp, aeff3, aepp3, anff3, anpp3)
             sus_oc_three[statement_index] = oc_three
 
-            ds_three = cal_dstar(tf3, tp, aeff3, aepp3, anff3, anpp3, 3)
+            ds_three = cal_dstar(tf, tp, aeff3, aepp3, anff3, anpp3, 3)
             sus_ds_three[statement_index] = ds_three
 
     sus_oc_zero = sorted(sus_oc_zero.items(), key=lambda d: d[1], reverse=True)
@@ -262,14 +287,11 @@ def cal_op2(tf, tp, aef, aep, anf, anp):
 
 if __name__ =="__main__":
 
-    root = '/home/tianshuaihua/dataset'
-    data = '/home/tianshuaihua/tpydata'
-    error_pro_ver = '/home/tianshuaihua/error'
-    res_path = '/home/tianshuaihua/res'
-    model_path = '/home/tianshuaihua/model'
+    originPath="/home/wuyonghao/Defeats4JFile/outputClean"
+    root = '/home/wuyonghao/CCIdentifyFile/dataset'
+    data = '/home/wuyonghao/CCIdentifyFile/pydata'
+    error_pro_ver = '/home/wuyonghao/CCIdentifyFile/error'
+    res_path = '/home/wuyonghao/CCIdentifyFile/res'
+    model_path = '/home/wuyonghao/CCIdentifyFile/model'
 
-    get_info(root,data,error_pro_ver,res_path,model_path)
-
-
-
-
+    get_info(root,data,error_pro_ver,res_path,model_path,originPath)

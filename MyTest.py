@@ -166,19 +166,14 @@ def get_files(folder_path):
     return []
 
 if __name__ == "__main__":
-    s = math.pow(2,4)
-
-    # model = '/home/tianshuaihua/base_pydata/Chart/1b'
-    # res = Tool_io.checkAndLoad(model, "fuzzy_knn")
-    # print("s")
-    # files = get_files(model)
-    # for file in files:
-    #     f = open(os.path.join(model,file), 'rb')
-    #     content = pickle.load(f)
-    #     print("s")
 
 
-    data = '/home/tianshuaihua/pydata'
+    # data = '/home/tianshuaihua/pydata/Time/1b'
+
+
+
+
+    data = '/home/tianshuaihua/base_pydata'
     #data = 'D:\\CC\\data_test\\other'
     dirs = get_folder(data)
     for dir in dirs:
@@ -206,14 +201,17 @@ if __name__ == "__main__":
             #    count = count + 1
             file = os.path.join(fol, 'sus_value')
             if os.path.exists(file):
-                #print(file)
-                os.remove(file)
+                s = Tool_io.checkAndLoad(fol, "sus_value")
+                if s.__contains__('ds_error'):
+                    print(file)
+                #os.remove(file)
 
         #print(temp,count)
         #print(temp,all,loc/all)
         # if num!=0:
         #     print(temp,num,tests/num)
-    print("s")
+
+        # Tool_io.cal_res(data, pro_name, res_path)
 
     # a = {1: 'a', 2: 'b', 5: 'c', 6: 'd'}
     # b = {1: 'a', 2: 'b', 5: 'c', 6: 'd'}
@@ -230,7 +228,6 @@ if __name__ == "__main__":
     #         a.pop(index)
     # print(a, b)
     # print(x, y)
-   # Tool_io.cal_res(data, pro_name, res_path)
     # t1 = [[1,3,6,5],[4,5,6,7]]
     # t2 = [[2,5,45,74],[2,5,6,9]]
     # tmp = []

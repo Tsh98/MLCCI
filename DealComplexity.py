@@ -6,7 +6,7 @@ import csv
 import pickle
 import shutil
 # 使用时打开注释
-#import javalang
+import javalang
 
 import Sttaic_code_features
 
@@ -157,8 +157,7 @@ def chang_name():
         fd = open(java_file, "r", encoding="utf-8")  # 读取Java源代码
         lines = fd.readlines()
         content = ''.join(lines)
-        #tree = javalang.parse.parse(content)  # 根据源代码解析出一颗抽象语法树
-        tree = 2
+        tree = javalang.parse.parse(content)  # 根据源代码解析出一颗抽象语法树
         getDeclareList(tree.children)
         for k, v in FunctionDeclareList.items():
             old_fun_name = str(k).split(':')[0]
@@ -220,8 +219,7 @@ def test():
         fd = open('D:\\CC\\data_test\\Chart\\1b\\source\\fun_change_name\\org\\jfree\\chart\\renderer\\LookupPaintScale.java', "r", encoding="utf-8")  # 读取Java源代码
         lines = fd.readlines()
         content = ''.join(lines)
-        #tree = javalang.parse.parse(content)  # 根据源代码解析出一颗抽象语法树
-        tree = 2
+        tree = javalang.parse.parse(content)  # 根据源代码解析出一颗抽象语法树
         getDeclareList(tree.children)
         for k, v in FunctionDeclareList.items():
             old_fun_name = str(k).split(':')[0]
@@ -240,12 +238,12 @@ def test():
 
 if __name__ == '__main__':
     # 复制源代码到新文件夹fun_change_name
-    #fun_change_file('D:\\CC\\data_test\\Chart')
+    fun_change_file('D:\\CC\\data_test\\Chart')
     # 删除文件夹fun_change_name
-    fun_del_file('D:\\CC\\data_test\\data\\Chart')
+    #fun_del_file('D:\\CC\\data_test\\data\\Chart')
 
     # 函数改名
-    #chang_name()
+    chang_name()
 
     # 生成复杂度txt文件
     #deal_folders('D:\\CC\\data_test\\Chart')

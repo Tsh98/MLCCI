@@ -1,6 +1,6 @@
 # coding=utf-8
 from __future__ import division
-
+import copy
 import hashlib
 import multiprocessing
 import os
@@ -456,7 +456,7 @@ def get_folder(folder_path):
 
 
 # 创建数据文件夹ss
-def create_data_folder(root, data):
+def create_data_folder(root, data, originPath=""):
     res = {}
     all_files = []
     dirs = get_folder(root)
@@ -473,11 +473,14 @@ def create_data_folder(root, data):
             version_path = os.path.join(dump_path, sub_dir)
             # 数据集程序不同版本计算结果存放路径
             res_path = os.path.join(data_path, sub_dir)
+
+            originDataPath=os.path.join(originPath,dir,sub_dir)
             if not os.path.exists(res_path):
                 os.mkdir(res_path)
             tmp = []
             tmp.append(version_path)
             tmp.append(res_path)
+            tmp.append(originDataPath)
             all_files.append(tmp)
         # 某个程序的全部版本路径
         res[dump_path] = all_files
@@ -487,11 +490,12 @@ def create_data_folder(root, data):
 
 
 # 统计计算结果
-def cal_res(data_path, pro_name, res_path):
+def cal_res(data_path, pro_name, res_path, keys):
     # 获取程序所有版本数据路径
     pro_data_path = os.path.join(data_path, pro_name)
     # 获取程序所有每个版本数据路径
-    pro_vers_path = get_folder(pro_data_path)
+    # pro_vers_path = get_folder(pro_data_path)
+    pro_vers_path = keys
     # cc识别结果路径
     pro_vers = []
     for ver in pro_vers_path:
@@ -548,8 +552,9 @@ def csv_res(pro_name, data, res_path):
         for row in data:
             writer.writerow(row)
 
+
 # 增加/删除怀疑度公式 a:怀疑度公式字典，b:已用怀疑度公式算好的特征
-def add_del_formula(a, b):
+def compare_sus(a, b):
     x = list(a.keys())
     y = list(b.keys())
     for index in y:
@@ -559,6 +564,28 @@ def add_del_formula(a, b):
         if index in y:
             a.pop(index)
     return a, b
+
+
+# 怀疑度公式增减
+def add_del_formula(features,formulaSus_origin,path,name):
+    # 原始特征维度
+    origin_len = len(features)
+    # 怀疑度公式类型是否有增减
+    formulaSus_copy = copy.deepcopy(formulaSus_origin)
+    formulaSus,features = compare_sus(formulaSus_copy, features)
+    # 怀疑度公式与现有特征用到的怀疑度公式类型是否有减少
+    now_len = len(features)
+    if now_len < origin_len:
+        checkDele(path, name)
+        if len(formulaSus) == 0:
+            checkAndSave(path, name, features)
+            return features, formulaSus, 0
+    if len(formulaSus) > 0:
+        checkDele(path, name)
+    else:
+        # 怀疑度公式与现有SS特征用到的怀疑度公式类型没有增加，原结果不变或删减后可直接返回
+        return features, formulaSus, 0
+    return features,formulaSus, 1
 
 
 def getSrcPath(formatCodePath, programName, versionInt):

@@ -1,3 +1,4 @@
+import pickle
 from multiprocessing import Pool
 import os, time
 
@@ -30,19 +31,19 @@ def creat_res_file(csv_name, row=None):
     print("s")
 
 if __name__ == '__main__':
-    #creat_res_file(12,56)
 
-    a = 0.391557703
-    b = 0.39155887
-    c = 0.391555921
+    path = '/home/tianshuaihua/base_pydata'
+    folder = Tool_io.get_folder(path)
+    res = '/home/tianshuaihua/base_res'
+    model_path = '/home/tianshuaihua/model'
 
-    a1 = 0.409914933
-    b1 = 0.409926654
-    c1 = 0.408173043
 
-    print((a*87+a1*48)/(87+48))
-    print((b*87+b1*48)/(87+48))
-    print((c*87+c1*48)/(87+48))
+    for index in folder:
+        if index =='Closure':
+            f = open(os.path.join(model_path, index + '.td'), 'rb')
+            td = pickle.load(f)
+            keys = list(td.keys())
+            Tool_io.cal_res(path,index,res,keys)
 
 
 

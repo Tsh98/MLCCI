@@ -12,25 +12,26 @@ def get_folder(folder_path):
     return []
 
 
-def base_info(root, data, error_pro_ver, res_path):
+def base_info(root, data, error_pro_ver, res_path,originPath):
     all = Tool_io.create_data_folder(root, data)
     for pros in all:
-        if pros != '/home/tianshuaihua/base_dataset/Lang':
-            continue
+        origin_dataset = os.path.join(originPath, os.path.basename(pros))
         for ver in all[pros]:
             print(ver)
             WPCC = Tool_io.checkAndLoad(ver[1], "fuzzy_knn")
             if WPCC is not None:
-                res = Tool_io.checkAndLoad(ver[1], "data_Coverage_InVector_saveAgain")
+                # res = Tool_io.checkAndLoad(ver[1], "data_Coverage_InVector_saveAgain")
+                origin_dataset_version = os.path.join(origin_dataset, os.path.basename(ver[0]))
+                originalCoverage = Tool_io.checkAndLoad(origin_dataset_version, "CoverageMatrix_Function.in")
                 vector = Tool_io.checkAndLoad(ver[0], "inVector.in")
-                cal_sus(len(res[1]), len(res[1][0]), res[1], vector, ver[1],WPCC)
+                cal_sus(len(originalCoverage), len(originalCoverage[0]), originalCoverage, vector, ver[1],WPCC)
                 print("s")
 
 
 # 计算怀疑度
 def cal_sus(case_num,statement_num,covMatrix,inVector,sus_path,WPCC):
 
-    sus_value = Tool_io.checkAndLoad(sus_path, "sus_value")
+    sus_value = Tool_io.checkAndLoad(sus_path, "sus_value_function")
     if sus_value != None:
         return sus_value
 
@@ -76,7 +77,7 @@ def cal_sus(case_num,statement_num,covMatrix,inVector,sus_path,WPCC):
                 else:
                     anp[statement_index] += 1
     formulaSus = SBFL_location(aef, aep, anf, anp, covMatrix, tf, tp, cc,WPCC)
-    Tool_io.checkAndSave(sus_path, "sus_value", formulaSus)
+    Tool_io.checkAndSave(sus_path, "sus_value_function", formulaSus)
     return formulaSus
 
 def SBFL_location(aefList,aepList,anfList,anpList,covMatrix,tf,tp,ccList,WPCC):
@@ -153,17 +154,17 @@ def cal_dstar_e(tf, tp, aef, aep, anf, anp, index,cc,cc_sum):
         if aef>0:
             return sys.maxsize
         else:
-            return 0
+            return 0, 0
     b = math.pow(aef+cc, index)
     c = b / a
     return c
 
 
 if __name__ =="__main__":
+    originPath = "/home/wuyonghao/Defeats4JFile/outputClean"
+    root = '/home/wuyonghao/CCIdentifyFile/base_dataset'
+    data = '/home/wuyonghao/CCIdentifyFile/base_pydata'
+    error_pro_ver = '/home/wuyonghao/CCIdentifyFile/base_error'
+    res_path = '/home/wuyonghao/CCIdentifyFile/base_res'
 
-    root = '/home/tianshuaihua/base_dataset'
-    data = '/home/tianshuaihua/base_pydata'
-    error_pro_ver = '/home/tianshuaihua/base_error'
-    res_path = '/home/tianshuaihua/base_res'
-
-    base_info(root, data, error_pro_ver, res_path)
+    base_info(root, data, error_pro_ver, res_path,originPath)

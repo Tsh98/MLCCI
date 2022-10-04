@@ -23,12 +23,12 @@ def fuzzy_knn(cov_dict, failIndex, trueCC, versionPath):
         return WPcc
     cov = cov_dict
 
-    # dict = cov_dict['dstar']
+    dict = cov_dict['dstar']
     #将字典变成numpy数组ssss
-    # cov = []
-    # for index in dict:
-    #    cov.append(dict[index])
-    # cov = np.array(cov)
+    cov = []
+    for index in dict:
+       cov.append(dict[index])
+    cov = np.array(cov)
 
     # knn实现ss
     # print("fail:",len(failIndex))

@@ -1,13 +1,12 @@
 import os.path
-import pickle
 import sys
 import csv
 import Tool_io
 
 
-def cal_metrics(root, data, error_pro_ver, res_path):
+def cal_metrics(root, data, error_pro_ver, res_path,originPath):
     # 若存在结果 直接返回
-    two_metric = Tool_io.checkAndLoad(res_path, "all_pro")
+    two_metric = Tool_io.checkAndLoad(res_path, "all_pro_function")
     if two_metric != None:
         return two_metric
 
@@ -15,28 +14,27 @@ def cal_metrics(root, data, error_pro_ver, res_path):
     pros_op = {}
     pros_op2 = {}
     for pros in all:
-        # if pros != '/home/tianshuaihua/base_dataset/Closure':
-        #     continue
         vers_op = {}
         vers_op2 = {}
         for ver in all[pros]:
-            if os.path.exists(os.path.join(ver[1],'sus_value')):
+            if os.path.exists(os.path.join(ver[1],'sus_value_function')):
                 print(ver)
-                loc = 0
-                sus_value = Tool_io.checkAndLoad(ver[1], "sus_value")
-                res = Tool_io.checkAndLoad(ver[1], "data_Coverage_InVector_saveAgain")
-                loc += len(open(os.path.join(ver[0], 'hugeCode.txt')).readlines())
-                fault_index = res[2]
+                sus_value = Tool_io.checkAndLoad(ver[1], "sus_value_function")
+                versionPath=os.path.join(originPath,os.path.basename(pros),os.path.basename(ver[0]))
+                faultHuge_Function = Tool_io.checkAndLoad(versionPath, "faultHuge_Function.in")
+                loc = len(open(os.path.join(versionPath, 'FunctionList.txt')).readlines())
+                fault_index = []
+                for javaFile in faultHuge_Function:
+                    for key in faultHuge_Function[javaFile]:
+                        temp = key
+                        fault_index.append(temp)
                 tmp = {}
                 tmp2 = {}
                 for sv in sus_value:
-                    try:
-                        top_res = getTop(sus_value[sv],fault_index,[1,2,3,5,50])
-                        cost = getEXAM(sus_value[sv],fault_index,loc)
-                        tmp[sv] = top_res
-                        tmp2[sv] = cost
-                    except:
-                        continue
+                    top_res = getTop(sus_value[sv],fault_index,[1,2,3,5,10,50])
+                    cost = getEXAM(sus_value[sv],fault_index,loc)
+                    tmp[sv] = top_res
+                    tmp2[sv] = cost
                 vers_op[os.path.basename(ver[0])] = tmp
                 vers_op2[os.path.basename(ver[0])] = tmp2
         pros_op[os.path.basename(pros)] = vers_op
@@ -44,9 +42,8 @@ def cal_metrics(root, data, error_pro_ver, res_path):
     two_metric = {}
     two_metric[0] = pros_op
     two_metric[1] = pros_op2
-    Tool_io.checkAndSave(res_path, "all_pro", two_metric)
+    Tool_io.checkAndSave(res_path, "all_pro_function", two_metric)
     return two_metric
-    print("s")
 
 
 # 计算exam
@@ -90,6 +87,9 @@ def getEXAM(dict, fault_location,loc):
         cost[sus_index][1] = first_index
         cost[sus_index][2] = end_index
         cost[sus_index][3] = average_index
+        # exam[sus_index][1] = first_index / len(dict)
+        # exam[sus_index][2] = end_index / len(dict)
+        # exam[sus_index][3] = average_index / len(dict)
         exam[sus_index][1] = first_index / loc
         exam[sus_index][2] = end_index / loc
         exam[sus_index][3] = average_index / loc
@@ -124,29 +124,17 @@ def getTop(dict, fault_location, TopList):
     return top_num
 
 
-def cal_end(all_pro,res_path,model_path):
+def cal_end(all_pro,res_path):
     top_all = all_pro[0]
     wasted_all = all_pro[1]
-    top_all.pop('Closure')
-    wasted_all.pop('Closure')
-    for t_name in top_all:
-        f = open(os.path.join(model_path, t_name + '.td'), 'rb')
-        td = pickle.load(f)
-        delete = []
-        for ex in top_all[t_name]:
-            if ex not in td:
-                delete.append(ex)
-        for d in delete:
-            top_all[t_name].pop(d)
-
     p = {}
     for pro_top in top_all:
         tmp = {
-            # "ochiai" : {},
-            # "ochiai_c" : {},
-            # "ochiai_r" :{},
-            # "ochiai_e" : {},
-            # "ds" : {},
+            "ochiai" : {},
+            "ochiai_c" : {},
+            "ochiai_r" :{},
+            "ochiai_e" : {},
+            "ds" : {},
             "ds_c" : {},
             "ds_r" : {},
             "ds_e" : {}
@@ -166,11 +154,11 @@ def cal_end(all_pro,res_path,model_path):
     wasted = {}
     for pro_top in wasted_all:
         tmp = {
-            # "ochiai" : {},
-            # "ochiai_c" : {},
-            # "ochiai_r" :{},
-            # "ochiai_e" : {},
-            # "ds" : {},
+            "ochiai" : {},
+            "ochiai_c" : {},
+            "ochiai_r" :{},
+            "ochiai_e" : {},
+            "ds" : {},
             "ds_c" : {},
             "ds_r" : {},
             "ds_e" : {}
@@ -239,7 +227,7 @@ def creat_res_file_top(rows,res_path,csv_name):
 # 存储结果
 def creat_res_file(rows,res_path,csv_name):
     path = os.path.join(res_path, csv_name) + ".csv"
-    header = ['','ds_c','ds_r','ds_e']
+    header = ['', 'ochici', 'ochiai_c','ochiai_r','ochiai_e','ds','ds_c','ds_e','ds_r']
     with open(path, 'a+', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(header)
@@ -248,15 +236,14 @@ def creat_res_file(rows,res_path,csv_name):
 
 
 if __name__ =="__main__":
+    originPath = "/home/wuyonghao/Defeats4JFile/outputClean"
+    root = '/home/wuyonghao/CCIdentifyFile/dataset'
+    data = '/home/wuyonghao/CCIdentifyFile/pydata'
+    error_pro_ver = '/home/wuyonghao/CCIdentifyFile/error'
+    res_path = '/home/wuyonghao/CCIdentifyFile/res'
+    all_pro = cal_metrics(root, data, error_pro_ver, res_path,originPath)
 
-    root = '/home/tianshuaihua/base_dataset'
-    data = '/home/tianshuaihua/base_pydata'
-    error_pro_ver = '/home/tianshuaihua/base_error'
-    res_path = '/home/tianshuaihua/base_res'
-    model_path = '/home/tianshuaihua/model'
-    all_pro = cal_metrics(root, data, error_pro_ver, res_path)
-
-    cal_end(all_pro,res_path,model_path)
+    cal_end(all_pro,res_path)
 
     statment = {
         0:0.6,
@@ -268,7 +255,7 @@ if __name__ =="__main__":
     }
     dict = sorted(statment.items(), key=lambda d: d[1], reverse=True)
     fault = [5,2]
-    # res = getEXAM(dict, fault)
-    #
-    # topList = [1,3,5]
-    # top = getTop(dict,fault,topList)
+    #res = getEXAM(dict, fault)
+
+    topList = [1,3,5]
+    top = getTop(dict,fault,topList)

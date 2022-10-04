@@ -104,7 +104,8 @@ def decision_tree(train_sample, train_target, ver_dict, pro_name,res_path,model_
     return recall_sum/count, precision_sum/count, FPR_sum/count, f1_score_sum/count
 
 
-def thirty_p(ver_dict):
+# 随机抽取三分之一的训练集
+def one_third(ver_dict):
     res = []
     for i in range(5):
         length = int((len(ver_dict)*3)/10)
@@ -132,8 +133,8 @@ def machine_learning(root,data,error_pro_ver,res_path,model_path):
     for index in res:
         # 程序名称
         pro_name = os.path.basename(index)
-        if pro_name == 'Chart' or pro_name=='Time':
-            continue
+        # if pro_name == 'Chart' or pro_name=='Time':
+        #     continue
         # 测试用例
         ver_dict = {}
         for ver in res[index]:
@@ -144,7 +145,7 @@ def machine_learning(root,data,error_pro_ver,res_path,model_path):
                 ver_one['cc_vector'] = cc_vector
                 ver_dict[os.path.basename(ver[0])] = ver_one
         # 随机选取30%版本作为训练集，随机选择5次
-        trains_data_key = thirty_p(ver_dict)
+        trains_data_key = one_third(ver_dict)
         r = 0
         p = 0
         fp = 0
@@ -184,7 +185,7 @@ if __name__ =="__main__":
     #linux path
 
     root = '/home/tianshuaihua/dataset'
-    data = '/home/tianshuaihua/pydata'
+    data = '/home/tianshuaihua/tpydata'
     error_pro_ver = '/home/tianshuaihua/error'
     res_path = '/home/tianshuaihua/res'
     model_path = '/home/tianshuaihua/model'

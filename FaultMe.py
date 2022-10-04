@@ -1,5 +1,4 @@
 import os.path
-import pickle
 import sys
 import csv
 import Tool_io
@@ -15,8 +14,6 @@ def cal_metrics(root, data, error_pro_ver, res_path):
     pros_op = {}
     pros_op2 = {}
     for pros in all:
-        # if pros != '/home/tianshuaihua/base_dataset/Closure':
-        #     continue
         vers_op = {}
         vers_op2 = {}
         for ver in all[pros]:
@@ -30,13 +27,10 @@ def cal_metrics(root, data, error_pro_ver, res_path):
                 tmp = {}
                 tmp2 = {}
                 for sv in sus_value:
-                    try:
-                        top_res = getTop(sus_value[sv],fault_index,[1,2,3,5,50])
-                        cost = getEXAM(sus_value[sv],fault_index,loc)
-                        tmp[sv] = top_res
-                        tmp2[sv] = cost
-                    except:
-                        continue
+                    top_res = getTop(sus_value[sv],fault_index,[1,2,3,5,10,50])
+                    cost = getEXAM(sus_value[sv],fault_index,loc)
+                    tmp[sv] = top_res
+                    tmp2[sv] = cost
                 vers_op[os.path.basename(ver[0])] = tmp
                 vers_op2[os.path.basename(ver[0])] = tmp2
         pros_op[os.path.basename(pros)] = vers_op
@@ -46,6 +40,11 @@ def cal_metrics(root, data, error_pro_ver, res_path):
     two_metric[1] = pros_op2
     Tool_io.checkAndSave(res_path, "all_pro", two_metric)
     return two_metric
+    print("s")
+
+
+# 计算新emam
+def exam_avg(dict, fault_location):
     print("s")
 
 
@@ -90,6 +89,9 @@ def getEXAM(dict, fault_location,loc):
         cost[sus_index][1] = first_index
         cost[sus_index][2] = end_index
         cost[sus_index][3] = average_index
+        # exam[sus_index][1] = first_index / len(dict)
+        # exam[sus_index][2] = end_index / len(dict)
+        # exam[sus_index][3] = average_index / len(dict)
         exam[sus_index][1] = first_index / loc
         exam[sus_index][2] = end_index / loc
         exam[sus_index][3] = average_index / loc
@@ -124,29 +126,17 @@ def getTop(dict, fault_location, TopList):
     return top_num
 
 
-def cal_end(all_pro,res_path,model_path):
+def cal_end(all_pro,res_path):
     top_all = all_pro[0]
     wasted_all = all_pro[1]
-    top_all.pop('Closure')
-    wasted_all.pop('Closure')
-    for t_name in top_all:
-        f = open(os.path.join(model_path, t_name + '.td'), 'rb')
-        td = pickle.load(f)
-        delete = []
-        for ex in top_all[t_name]:
-            if ex not in td:
-                delete.append(ex)
-        for d in delete:
-            top_all[t_name].pop(d)
-
     p = {}
     for pro_top in top_all:
         tmp = {
-            # "ochiai" : {},
-            # "ochiai_c" : {},
-            # "ochiai_r" :{},
-            # "ochiai_e" : {},
-            # "ds" : {},
+            "ochiai" : {},
+            "ochiai_c" : {},
+            "ochiai_r" :{},
+            "ochiai_e" : {},
+            "ds" : {},
             "ds_c" : {},
             "ds_r" : {},
             "ds_e" : {}
@@ -166,11 +156,11 @@ def cal_end(all_pro,res_path,model_path):
     wasted = {}
     for pro_top in wasted_all:
         tmp = {
-            # "ochiai" : {},
-            # "ochiai_c" : {},
-            # "ochiai_r" :{},
-            # "ochiai_e" : {},
-            # "ds" : {},
+            "ochiai" : {},
+            "ochiai_c" : {},
+            "ochiai_r" :{},
+            "ochiai_e" : {},
+            "ds" : {},
             "ds_c" : {},
             "ds_r" : {},
             "ds_e" : {}
@@ -229,7 +219,7 @@ def deal_csv(p,wasted,res_path):
 # 存储结果
 def creat_res_file_top(rows,res_path,csv_name):
     path = os.path.join(res_path, csv_name) + ".csv"
-    header = ['', 'sus_formula', 'top-50','top-5','top-3','top-2','top-1']
+    header = ['', 'sus_formula', 'top-50','top-10','top-5','top-3','top-2','top-1']
     with open(path, 'a+', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(header)
@@ -239,7 +229,7 @@ def creat_res_file_top(rows,res_path,csv_name):
 # 存储结果
 def creat_res_file(rows,res_path,csv_name):
     path = os.path.join(res_path, csv_name) + ".csv"
-    header = ['','ds_c','ds_r','ds_e']
+    header = ['', 'ochici', 'ochiai_c','ochiai_r','ochiai_e','ds','ds_c','ds_r','ds_e']
     with open(path, 'a+', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(header)
@@ -249,14 +239,14 @@ def creat_res_file(rows,res_path,csv_name):
 
 if __name__ =="__main__":
 
-    root = '/home/tianshuaihua/base_dataset'
-    data = '/home/tianshuaihua/base_pydata'
-    error_pro_ver = '/home/tianshuaihua/base_error'
-    res_path = '/home/tianshuaihua/base_res'
-    model_path = '/home/tianshuaihua/model'
+    root = '/home/tianshuaihua/dataset'
+    data = '/home/tianshuaihua/tpydata'
+    error_pro_ver = '/home/tianshuaihua/error'
+    res_path = '/home/tianshuaihua/res'
+
     all_pro = cal_metrics(root, data, error_pro_ver, res_path)
 
-    cal_end(all_pro,res_path,model_path)
+    cal_end(all_pro,res_path)
 
     statment = {
         0:0.6,
@@ -268,7 +258,7 @@ if __name__ =="__main__":
     }
     dict = sorted(statment.items(), key=lambda d: d[1], reverse=True)
     fault = [5,2]
-    # res = getEXAM(dict, fault)
-    #
-    # topList = [1,3,5]
-    # top = getTop(dict,fault,topList)
+    #res = getEXAM(dict, fault)
+
+    topList = [1,3,5]
+    top = getTop(dict,fault,topList)
