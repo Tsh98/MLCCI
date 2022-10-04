@@ -13,7 +13,7 @@ The experiment is divided into two parts, one is MCLLI approach and the other is
 4. Execute the main function in **FaultMe.py** to get the metrics of fault localization.
 
 
-# Run Fuzzy Weighted KNN approach experimental code
+## Run Fuzzy Weighted KNN approach experimental code
 
 1. Execute the main function of **featureExtract.py**, obtain the results of four feature calculations, replace the **execution** in the main function with **execution_baseline**.
 
